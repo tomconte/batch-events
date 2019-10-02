@@ -45,7 +45,13 @@ main_task_id = "test-container-task-"+str(uuid.uuid4())
 main_task = batch.models.TaskAddParameter(
     id = main_task_id,
     command_line = "--cpu 2 --timeout 60s",
-    container_settings = task_container_settings
+    container_settings = task_container_settings,
+    # Set the dependency to alway satisfy, even in case of failure
+    exit_conditions=batch.models.ExitConditions(
+        default=batch.models.ExitOptions(
+            dependency_action="satisfy"
+        )
+    )
 )
 
 batch_client.task.add(job_id=job_name, task=main_task)
