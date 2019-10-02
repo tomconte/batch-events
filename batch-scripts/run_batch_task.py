@@ -72,6 +72,12 @@ notification_task = batch.models.TaskAddParameter(
 
 batch_client.task.add(job_id=job_name, task=notification_task)
 
+# Set the job to auto-terminate when all tasks are complete
+
+batch_client.job.patch(job_name, batch.models.JobPatchParameter(
+    on_all_tasks_complete="terminateJob"
+))
+
 # Print job information
 
-print(job.serialize())
+print(job_name)
