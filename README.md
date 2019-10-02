@@ -2,7 +2,7 @@
 
 This sample shows how to send events from Azure Batch, such as end-of-job notifications, using task dependencies, Azure Event Grid, and Azure Functions. At a high level, we are going to use a custom Event Grid topic to send an event from a "notification" task within a Batch job. This event will be received by an Azure Function, using an Event Grid trigger.
 
-## Create the Function host and Event Grid topic/susbscription
+## Create the Function host and Event Grid topic/subscription
 
 From a shell session, define some variables that will be used during the deployment:
 
@@ -17,7 +17,9 @@ Deploy the provided ARM template `arm-function-app.json` to create an App Servic
 
 ```
 az group create --name ${RESOURCE_GROUP} --location southcentralus
-az group deployment create --resource-group ${RESOURCE_GROUP} --template-file arm-function-app.json --parameters appName=${FUNCTION_APP}
+az group deployment create --resource-group ${RESOURCE_GROUP} \
+  --template-file arm-function-app.json \
+  --parameters appName=${FUNCTION_APP}
 ```
 
 ### Deploy the Function app
@@ -64,7 +66,11 @@ WEBHOOK_URL="https://${FUNCTION_APP}.azurewebsites.net/runtime/webhooks/eventgri
 Use the second provided ARM template to create a custom topic and subscribe the Function to the events from this topic. The callback URL is passed as a parameter.
 
 ```
-az group deployment create --resource-group ${RESOURCE_GROUP} --template-file arm-event-grid-topic-sub.json --parameters eventGridTopicName=job-event eventGridSubscriptionName=job-event-sub eventGridSubscriptionUrl=${WEBHOOK_URL}
+az group deployment create --resource-group ${RESOURCE_GROUP} \
+  --template-file arm-event-grid-topic-sub.json \
+  --parameters eventGridTopicName=job-event \
+  eventGridSubscriptionName=job-event-sub \
+  eventGridSubscriptionUrl=${WEBHOOK_URL}
 ```
 
 ## Post an event to the custom topic
@@ -78,7 +84,7 @@ ENDPOINT=$(az eventgrid topic show --name job-event -g ${RESOURCE_GROUP} --outpu
 KEY=$(az eventgrid topic key list --name job-event -g ${RESOURCE_GROUP} --output tsv --query "key1")
 ```
 
-In another terminal window, you can stream the logs from the Event Grid Function:
+In another terminal window, you can stream the logs from the Event Grid Function (you can also use the Azure Portal).
 
 ```
 func azure functionapp logstream $FUNCTION_APP
@@ -100,7 +106,7 @@ You should see in the Function log stream that the event was received.
 
 ## Create a Batch task to trigger the event
 
-You can now send an event from any Batch task just by using cURL as shown above, or any other means to send an HTTP request. If you do not want to send the event from your actual compute task, you can schedule an specific event-sending task within a job, using [task dependencies](https://docs.microsoft.com/en-us/azure/batch/batch-task-dependencies). This "notification" task can be configured to run once all the other tasks in the job are finished (successfully or not).
+You can now send an event from any Batch task just by using cURL as shown above, or any other means to send an HTTP request. If you do not want to send the event from your actual compute task, you can schedule a specific event-sending task within a job, using [task dependencies](https://docs.microsoft.com/en-us/azure/batch/batch-task-dependencies). This "notification" task can be configured to run once all the other tasks in the job are finished (successfully or not).
 
 In this example we are using a container-enabled Batch pool, which means that each task can run in a Docker-compatible container. We are going to use a small dedicated Docker image to schedule a notification task within a job.
 
@@ -111,7 +117,9 @@ The `send-event` folder contains a Docker file and a simple Python script invoki
 Build the image:
 
 ```
+cd send-event
 docker build -t send-event .
+cd ..
 ```
 
 You can try the image right away, using the Event Grid endpoint/key variables from above. We are also faking the `AZ_BATCH_JOB_ID` environment variable, which will be set in the Batch runtime environment.
